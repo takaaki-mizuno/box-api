@@ -30,4 +30,9 @@ class BaseClientTestCase extends \PHPUnit\Framework\TestCase
     {
         file_put_contents(realpath(__DIR__.'/data/'.$name.'.txt'), $value);
     }
+
+    public function testDummy()
+    {
+        $this->assertTrue(true);
+    }
 }

@@ -37,7 +37,7 @@ class Client
      */
     public function __construct($clientId, $clientSecret)
     {
-        $this->clientId     = $clientId;
+        $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
     }
 
@@ -77,8 +77,8 @@ class Client
             return false;
         }
 
-        $data               = $response->getJsonResponse();
-        $this->accessToken  = $data['access_token'];
+        $data = $response->getJsonResponse();
+        $this->accessToken = $data['access_token'];
         $this->refreshToken = $data['refresh_token'];
 
         return true;
@@ -91,10 +91,12 @@ class Client
      *
      * @return array|File[]|null
      */
-    public function searchFile($name, $limit=100, $offset=0)
+    public function searchFile($name, $limit = 100, $offset = 0)
     {
         $params = array(
-            'query' => $name,
+            'query'  => $name,
+            'offset' => $offset,
+            'limit'  => $limit,
         );
 
         $response = $this->accessAPI('2.0/search', 'get', $params, $this->getAuthenticatedHeaders());
@@ -102,13 +104,64 @@ class Client
             return null;
         }
 
-        $data  = $response->getJsonResponse();
+        $data = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
         }
 
         return $files;
+    }
+
+    /**
+     * @param int $folderId
+     * @param $limit
+     * @param $offset
+     *
+     * @return array|File[]|null
+     */
+    public function filesInFolder($folderId = 0, $limit = 1000, $offset = 0)
+    {
+        $params = array(
+            'offset' => $offset,
+            'limit'  => $limit,
+        );
+        $response = $this->accessAPI('2.0/folders/'.$folderId.'/items', 'get', $params,
+            $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+        $files = array();
+        foreach ($data['entries'] as $entry) {
+            $files[] = new File($entry);
+        }
+
+        return $files;
+    }
+
+    /**
+     * @param  string $name
+     * @param  int $parentFolderId
+     * @return null|File
+     */
+    public function createFolder($name, $parentFolderId)
+    {
+        $params = array(
+            'name'   => $name,
+            'parent' => array(
+                'id' => $parentFolderId,
+            ),
+        );
+        $response = $this->accessAPI('2.0/folders', 'post', $params, $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+
+        return new File($data);
     }
 
     private function getAuthenticatedHeaders()
@@ -121,16 +174,17 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array  $param
-     * @param array  $headers
+     * @param array $param
+     * @param array $headers
+     * @param string $contentType
      *
      * @return Response
      */
-    private function accessAPI($path, $method, $param, $headers = array())
+    private function accessAPI($path, $method, $param, $headers = array(), $contentType = '')
     {
-        $url        = $this->baseURL.$path;
+        $url = $this->baseURL.$path;
         $httpClient = new HttpClient();
-        $request    = new Request($url, $method, $param);
+        $request = new Request($url, $method, $param, $contentType);
         $request->setHeaders($headers);
         $response = $httpClient->request($request);
 

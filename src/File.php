@@ -3,7 +3,7 @@ namespace TakaakiMizuno\Box;
 
 class File
 {
-    const TYPE_FILE   = 'file';
+    const TYPE_FILE = 'file';
     const TYPE_FOLDER = 'folder';
 
     /** @var int */
@@ -101,23 +101,27 @@ class File
      */
     private function setAPIResponse($response)
     {
-        $this->id   = $response['id'];
+        $this->id = $response['id'];
         $this->name = $response['name'];
         $this->type = $response['type'];
-        $this->size = $response['size'];
+        $this->size = array_key_exists('size', $response) ? $response['size'] : 0;
 
         if (!empty($response['parent'])) {
             $this->parentId = $response['parent']['id'];
         }
 
-        foreach ($response['path_collection']['entries'] as $entry) {
-            if ($entry['id'] == 0) {
-                continue;
+        if (array_key_exists('path_collection', $response)) {
+            {
+                foreach ($response['path_collection']['entries'] as $entry) {
+                    if ($entry['id'] == 0) {
+                        continue;
+                    }
+                    $this->pathCollection[] = array(
+                        'id'   => $entry['id'],
+                        'name' => $entry['name'],
+                    );
+                }
             }
-            $this->pathCollection[] = array(
-                'id'   => $entry['id'],
-                'name' => $entry['name'],
-            );
         }
     }
 }

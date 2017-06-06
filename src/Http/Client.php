@@ -19,8 +19,8 @@ class Client
      */
     public function request(Request $request)
     {
-        $url     = $request->getUrl();
-        $query   = http_build_query($request->getParameters());
+        $url = $request->getUrl();
+        $query = http_build_query($request->getParameters());
         $headers = $request->getHeaders();
         if (!array_key_exists('Agent', $headers) || !$headers['Agent']) {
             $headers['Agent'] = $this->userAgent;
@@ -36,7 +36,19 @@ class Client
                 case 'post':
                 case 'put':
                 case 'patch':
-                    $headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                    if ($request->hasFile() || $request->getContentType() == 'multipart/form-data') {
+                        $boundary = '--------------------------'.microtime(true);
+                        $headers['Content-Type'] = 'multipart/form-data; boundary='.$boundary;
+                        $query = $this->createMultiPartBody($request, $boundary);
+
+                    } elseif ($request->getContentType() == 'application/json') {
+                        $headers['Content-Type'] = 'application/json';
+                        $query = json_encode($request->getParameters());
+                    } else {
+                        $headers['Content-Type'] = 'application/x-www-form-urlencoded';
+                    }
+                    break;
+
             }
         }
 
@@ -51,6 +63,24 @@ class Client
         $content = file_get_contents($url, false, stream_context_create($context));
 
         return new Response($this->parseHeaders($http_response_header), $content);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $boundary
+     * @return string
+     */
+    private function createMultiPartBody($request, $boundary)
+    {
+        $body = "--".$boundary."\r\n"."Content-Disposition: form-data; name=\"attributes\"\r\n\r\n".json_encode($request->getParameters())."\r\n";
+
+        foreach ($request->getFiles() as $filename) {
+            $file_contents = file_get_contents($filename);
+            $body .= "--".$boundary."\r\n"."Content-Disposition: form-data; name=\"file\"; filename=\"".basename($filename)."\"\r\n"."Content-Type: application/octet-stream\r\n\r\n".$file_contents."\r\n";
+        }
+        $body .= "--".$boundary."--\r\n";
+
+        return $body;
     }
 
     private function getHeaderArray($headers)
