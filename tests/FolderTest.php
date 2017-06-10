@@ -26,16 +26,4 @@ class FolderTest extends BaseClientTestCase
         print $file->getFullPath().PHP_EOL;
     }
 
-    /**
-     * @param $length
-     * @return string
-     */
-    private function randomString($length) {
-        $seed = array_merge(range('a', 'z'), range('0', '9'), range('A', 'Z'));
-        $result = '';
-        for ($i = 0; $i < $length; $i++) {
-            $result .= $seed[rand(0, count($seed) - 1)];
-        }
-        return $result;
-    }
 }

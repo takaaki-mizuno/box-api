@@ -37,7 +37,7 @@ class Client
      */
     public function __construct($clientId, $clientSecret)
     {
-        $this->clientId = $clientId;
+        $this->clientId     = $clientId;
         $this->clientSecret = $clientSecret;
     }
 
@@ -77,8 +77,8 @@ class Client
             return false;
         }
 
-        $data = $response->getJsonResponse();
-        $this->accessToken = $data['access_token'];
+        $data               = $response->getJsonResponse();
+        $this->accessToken  = $data['access_token'];
         $this->refreshToken = $data['refresh_token'];
 
         return true;
@@ -104,7 +104,7 @@ class Client
             return null;
         }
 
-        $data = $response->getJsonResponse();
+        $data  = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
@@ -132,7 +132,7 @@ class Client
             return null;
         }
 
-        $data = $response->getJsonResponse();
+        $data  = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
@@ -142,8 +142,9 @@ class Client
     }
 
     /**
-     * @param  string $name
-     * @param  int $parentFolderId
+     * @param string $name
+     * @param int    $parentFolderId
+     *
      * @return null|File
      */
     public function createFolder($name, $parentFolderId)
@@ -164,6 +165,62 @@ class Client
         return new File($data);
     }
 
+    public function existFile($id)
+    {
+        $response = $this->accessAPI('2.0/files/'.$id, 'get', array(), $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
+    public function downloadFile($id, $filePath)
+    {
+        $response = $this->accessAPIDownload('2.0/files/'.$id.'/content', 'get', array(), $this->getAuthenticatedHeaders(),
+            'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        file_put_contents($filePath, $response->getResponse());
+
+        return true;
+    }
+
+    /**
+     * @param string $name
+     * @param string $filePath
+     * @param int    $parentFolderId
+     *
+     * @return File|null
+     */
+    public function uploadFile($name, $filePath, $parentFolderId)
+    {
+        $params = array(
+            'name'   => $name,
+            'parent' => array(
+                'id' => $parentFolderId,
+            ),
+        );
+        $response = $this->accessAPIUpload('2.0/files/content', 'post', $params, $this->getAuthenticatedHeaders(),
+            array($filePath), 'https://upload.box.com/api/');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $data = $response->getJsonResponse();
+
+        $files = array();
+        foreach ($data['entries'] as $entry) {
+            $files[] = new File($entry);
+        }
+        if (count($files) == 0) {
+            return null;
+        }
+
+        return $files[0];
+    }
+
     private function getAuthenticatedHeaders()
     {
         return array(
@@ -174,8 +231,8 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array $param
-     * @param array $headers
+     * @param array  $param
+     * @param array  $headers
      * @param string $contentType
      *
      * @return Response
@@ -183,10 +240,56 @@ class Client
     private function accessAPI($path, $method, $param, $headers = array(), $contentType = '')
     {
         $url = $this->baseURL.$path;
+
         $httpClient = new HttpClient();
-        $request = new Request($url, $method, $param, $contentType);
+        $request    = new Request($url, $method, $param, $contentType);
         $request->setHeaders($headers);
         $response = $httpClient->request($request);
+
+        return $response;
+    }
+
+    /**
+     * @param string $path
+     * @param string $method
+     * @param array  $param
+     * @param array  $headers
+     * @param array  $files
+     * @param string $baseUrl
+     *
+     * @return Response
+     */
+    private function accessAPIUpload($path, $method, $param, $headers = array(), $files = array(), $baseUrl = null)
+    {
+        if (empty($baseUrl)) {
+            $baseUrl = $this->baseURL;
+        }
+        $url        = $baseUrl.$path;
+        $httpClient = new HttpClient();
+        $request    = new Request($url, $method, $param, 'multipart', $files);
+        $request->setHeaders($headers);
+        $response = $httpClient->request($request);
+
+        return $response;
+    }
+
+    /**
+     * @param string $path
+     * @param string $method
+     * @param array  $param
+     * @param array  $headers
+     * @param string $contentType
+     *
+     * @return Response
+     */
+    private function accessAPIDownload($path, $method, $param, $headers = array(), $contentType = '')
+    {
+        $url = $this->baseURL.$path;
+
+        $httpClient = new HttpClient();
+        $request    = new Request($url, $method, $param, $contentType);
+        $request->setHeaders($headers);
+        $response = $httpClient->requestWithCurl($request);
 
         return $response;
     }

@@ -3,7 +3,7 @@ namespace TakaakiMizuno\Box;
 
 class File
 {
-    const TYPE_FILE = 'file';
+    const TYPE_FILE   = 'file';
     const TYPE_FOLDER = 'folder';
 
     /** @var int */
@@ -101,7 +101,7 @@ class File
      */
     private function setAPIResponse($response)
     {
-        $this->id = $response['id'];
+        $this->id   = $response['id'];
         $this->name = $response['name'];
         $this->type = $response['type'];
         $this->size = array_key_exists('size', $response) ? $response['size'] : 0;

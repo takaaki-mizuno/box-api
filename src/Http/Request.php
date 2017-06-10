@@ -24,21 +24,25 @@ class Request
 
     private $contentType = '';
 
+    private $deafultHeaders = array(
+        'Accept' => '*/*',
+    );
+
     /**
      * Request constructor.
      *
      * @param string $url
      * @param string $method
-     * @param array $parameters
+     * @param array  $parameters
      * @param string $contentType
-     * @param array $files
+     * @param array  $files
      */
-    public function __construct($url, $method = 'get', $parameters = array(), $contentType = "", $files = array())
+    public function __construct($url, $method = 'get', $parameters = array(), $contentType = '', $files = array())
     {
-        $this->url = $url;
-        $this->method = $method;
-        $this->parameters = $parameters;
-        $this->files = $files;
+        $this->url         = $url;
+        $this->method      = $method;
+        $this->parameters  = $parameters;
+        $this->files       = $files;
         $this->contentType = $contentType == 'json' ? 'application/json' : ($contentType == 'multipart' ? 'multipart/form-data' : 'application/x-www-form-urlencoded');
     }
 

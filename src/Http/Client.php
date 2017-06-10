@@ -1,6 +1,10 @@
 <?php
 namespace TakaakiMizuno\Box\Http;
 
+use TakaakiMizuno\Box\Exceptions\APIErrorException;
+use TakaakiMizuno\Box\Exceptions\InvalidTokenException;
+use TakaakiMizuno\Box\Exceptions\NetworkException;
+
 class Client
 {
     protected $userAgent = 'TakaakiMizuno-BOX-SDK/0.1';
@@ -16,11 +20,15 @@ class Client
      * @param Request $request
      *
      * @return Response
+     *
+     * @throws APIErrorException
+     * @throws InvalidTokenException
+     * @throws NetworkException
      */
     public function request(Request $request)
     {
-        $url = $request->getUrl();
-        $query = http_build_query($request->getParameters());
+        $url     = $request->getUrl();
+        $query   = http_build_query($request->getParameters());
         $headers = $request->getHeaders();
         if (!array_key_exists('Agent', $headers) || !$headers['Agent']) {
             $headers['Agent'] = $this->userAgent;
@@ -37,13 +45,12 @@ class Client
                 case 'put':
                 case 'patch':
                     if ($request->hasFile() || $request->getContentType() == 'multipart/form-data') {
-                        $boundary = '--------------------------'.microtime(true);
+                        $boundary                = '--------------------------'.microtime(true);
                         $headers['Content-Type'] = 'multipart/form-data; boundary='.$boundary;
-                        $query = $this->createMultiPartBody($request, $boundary);
-
+                        $query                   = $this->createMultiPartBody($request, $boundary);
                     } elseif ($request->getContentType() == 'application/json') {
                         $headers['Content-Type'] = 'application/json';
-                        $query = json_encode($request->getParameters());
+                        $query                   = json_encode($request->getParameters());
                     } else {
                         $headers['Content-Type'] = 'application/x-www-form-urlencoded';
                     }
@@ -62,23 +69,70 @@ class Client
 
         $content = file_get_contents($url, false, stream_context_create($context));
 
+        if (preg_match('/HTTP\/1\.[0|1|x] ([0-9]{3})/', $http_response_header[0], $matches)) {
+            $statusCode = (int) $matches[1];
+            if ($statusCode == 401) {
+                throw new InvalidTokenException('Invalid Token', 401);
+            } elseif ($statusCode > 399) {
+                throw new APIErrorException('API returns error', $statusCode);
+            }
+        } else {
+            throw new NetworkException('Network Error', 0);
+        }
+
         return new Response($this->parseHeaders($http_response_header), $content);
+    }
+
+    public function requestWithCurl(Request $request)
+    {
+        $url     = $request->getUrl();
+        $query   = http_build_query($request->getParameters());
+        $headers = $request->getHeaders();
+        if (!array_key_exists('Agent', $headers) || !$headers['Agent']) {
+            $headers['Agent'] = $this->userAgent;
+        }
+
+        $header = $this->getHeaderArray($headers);
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_MAXREDIRS, 10);
+        curl_setopt($ch, CURLOPT_AUTOREFERER, true);
+
+        $data = curl_exec($ch);
+
+        $info   = curl_getinfo($ch);
+        $header = substr($data, 0, $info['header_size']);
+        $body   = substr($data, $info['header_size']);
+
+        curl_close($ch);
+
+        print_r(explode("\r\n", $header));
+
+        return new Response($this->parseHeaders(explode("\r\n", $header)), $body);
     }
 
     /**
      * @param Request $request
-     * @param string $boundary
+     * @param string  $boundary
+     *
      * @return string
      */
     private function createMultiPartBody($request, $boundary)
     {
-        $body = "--".$boundary."\r\n"."Content-Disposition: form-data; name=\"attributes\"\r\n\r\n".json_encode($request->getParameters())."\r\n";
+        $body = '--'.$boundary."\r\n"."Content-Disposition: form-data; name=\"attributes\"\r\n\r\n".json_encode($request->getParameters())."\r\n";
 
         foreach ($request->getFiles() as $filename) {
             $file_contents = file_get_contents($filename);
-            $body .= "--".$boundary."\r\n"."Content-Disposition: form-data; name=\"file\"; filename=\"".basename($filename)."\"\r\n"."Content-Type: application/octet-stream\r\n\r\n".$file_contents."\r\n";
+            $body .= '--'.$boundary."\r\n".'Content-Disposition: form-data; name="file"; filename="'.basename($filename)."\"\r\n"."Content-Type: application/octet-stream\r\n\r\n".$file_contents."\r\n";
         }
-        $body .= "--".$boundary."--\r\n";
+        $body .= '--'.$boundary."--\r\n";
 
         return $body;
     }
