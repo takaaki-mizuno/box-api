@@ -26,4 +26,20 @@ class FolderTest extends BaseClientTestCase
         print $file->getFullPath().PHP_EOL;
     }
 
+    public function testRenameFolder()
+    {
+        $name = $this->randomString(10);
+
+        $client = $this->getClient();
+        $folder = $client->createFolder($name, 0);
+        $this->assertNotEmpty($folder);
+
+        $rename = 'rename_' . $name;
+        $folder = $client->renameFolder($rename, $folder->getId());
+
+        $this->assertNotEmpty($folder);
+
+        print $folder->getFullPath().PHP_EOL;
+    }
+
 }

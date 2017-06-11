@@ -165,6 +165,22 @@ class Client
         return new File($data);
     }
 
+    public function renameFolder($name, $folderId)
+    {
+        $params = array(
+            'name'   => $name,
+        );
+
+        $response = $this->accessAPI('2.0/folders/'.$folderId, 'put', $params, $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
     public function existFile($id)
     {
         $response = $this->accessAPI('2.0/files/'.$id, 'get', array(), $this->getAuthenticatedHeaders(), 'json');
