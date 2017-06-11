@@ -168,10 +168,11 @@ class Client
     public function renameFolder($name, $folderId)
     {
         $params = array(
-            'name'   => $name,
+            'name' => $name,
         );
 
-        $response = $this->accessAPI('2.0/folders/'.$folderId, 'put', $params, $this->getAuthenticatedHeaders(), 'json');
+        $response = $this->accessAPI('2.0/folders/'.$folderId, 'put', $params, $this->getAuthenticatedHeaders(),
+            'json');
         if (!$response->isSuccess()) {
             return null;
         }
@@ -194,8 +195,8 @@ class Client
 
     public function downloadFile($id, $filePath)
     {
-        $response = $this->accessAPIDownload('2.0/files/'.$id.'/content', 'get', array(), $this->getAuthenticatedHeaders(),
-            'json');
+        $response = $this->accessAPIDownload('2.0/files/'.$id.'/content', 'get', array(),
+            $this->getAuthenticatedHeaders(), 'json');
         if (!$response->isSuccess()) {
             return null;
         }
@@ -221,6 +222,36 @@ class Client
         );
         $response = $this->accessAPIUpload('2.0/files/content', 'post', $params, $this->getAuthenticatedHeaders(),
             array($filePath), 'https://upload.box.com/api/');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $data = $response->getJsonResponse();
+
+        $files = array();
+        foreach ($data['entries'] as $entry) {
+            $files[] = new File($entry);
+        }
+        if (count($files) == 0) {
+            return null;
+        }
+
+        return $files[0];
+    }
+
+    /**
+     * @param string $name
+     * @param string $filePath
+     * @param string $fileId
+     *
+     * @return File|null
+     */
+    public function overwriteFile($name, $filePath, $fileId)
+    {
+        $params = array(
+            'name'   => $name,
+        );
+        $response = $this->accessAPIUpload('2.0/files/'.$fileId.'/content', 'post', $params,
+            $this->getAuthenticatedHeaders(), array($filePath), 'https://upload.box.com/api/');
         if (!$response->isSuccess()) {
             return null;
         }

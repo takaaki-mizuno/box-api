@@ -61,9 +61,10 @@ class Client
 
         $context = array(
             'http' => array(
-                'method'  => strtoupper($request->getMethod()),
-                'header'  => implode("\r\n", $this->getHeaderArray($headers)),
-                'content' => $query,
+                'method'        => strtoupper($request->getMethod()),
+                'header'        => implode("\r\n", $this->getHeaderArray($headers)),
+                'content'       => $query,
+                'ignore_errors' => true,
             ),
         );
 
@@ -74,6 +75,8 @@ class Client
             if ($statusCode == 401) {
                 throw new InvalidTokenException('Invalid Token', 401);
             } elseif ($statusCode > 399) {
+                print $url;
+                print_r($http_response_header);
                 throw new APIErrorException('API returns error', $statusCode);
             }
         } else {
