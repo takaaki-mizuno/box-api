@@ -1,6 +1,7 @@
 <?php
 namespace TakaakiMizuno\Box;
 
+use Firebase\JWT\JWT;
 use TakaakiMizuno\Box\Http\Client as HttpClient;
 use TakaakiMizuno\Box\Http\Request;
 use TakaakiMizuno\Box\Http\Response;
@@ -22,6 +23,26 @@ class Client
     /**
      * @var string
      */
+    private $uid;
+
+    /**
+     * @var int
+     */
+    private $userId;
+
+    /**
+     * @var string
+     */
+    private $publicKeyId;
+
+    /**
+     * @var string
+     */
+    private $type;
+
+    /**
+     * @var string
+     */
     private $accessToken;
 
     /**
@@ -34,11 +55,23 @@ class Client
      *
      * @param string $clientId
      * @param string $clientSecret
+     * @param string $publicKeyId
+     * @param int $userId
+     * @param string $type
+     * @param string $uid
      */
-    public function __construct($clientId, $clientSecret)
+    public function __construct($clientId, $clientSecret, $publicKeyId, $userId, $type = "user", $uid = null)
     {
-        $this->clientId     = $clientId;
+        $this->clientId = $clientId;
         $this->clientSecret = $clientSecret;
+        if (empty($uid)) {
+            $uid = $this->generateUID();
+        }
+        $this->uid = $uid;
+
+        $this->userId = $userId;
+        $this->type = $type;
+        $this->publicKeyId = $publicKeyId;
     }
 
     public function getAccessToken()
@@ -77,9 +110,51 @@ class Client
             return false;
         }
 
-        $data               = $response->getJsonResponse();
-        $this->accessToken  = $data['access_token'];
+        $data = $response->getJsonResponse();
+        $this->accessToken = $data['access_token'];
         $this->refreshToken = $data['refresh_token'];
+
+        return true;
+    }
+
+    /**
+     * @param string $privateKeyPath
+     * @param string $passphrase
+     * @return bool
+     */
+    public function getAccessTokenWithJWT($privateKeyPath, $passphrase)
+    {
+        $keyData = file_get_contents($privateKeyPath);
+        $privateKeyResource = openssl_pkey_get_private($keyData, $passphrase);
+        openssl_pkey_export($privateKeyResource, $privateKey);
+
+        $jwtData = array(
+            'typ'          => 'JWT',
+            'kid'          => $this->publicKeyId,
+            'iss'          => $this->clientId,
+            'sub'          => $this->userId,
+            'box_sub_type' => $this->type,
+            'aud'          => 'https://api.box.com/oauth2/token',
+            'jti'          => $this->uid,
+            'exp'          => time() + 30,
+        );
+        $jwt = JWT::encode($jwtData, $privateKey, 'RS256');
+
+        $params = array(
+            'grant_type'  => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'client_id' => $this->clientId,
+            'client_secret'  => $this->clientSecret,
+            'assertion' => $jwt,
+        );
+
+        $response = $this->accessAPI('oauth2/token', 'post', $params, array());
+
+        if (!$response->isSuccess()) {
+            return false;
+        }
+
+        $data = $response->getJsonResponse();
+        $this->accessToken = $data['access_token'];
 
         return true;
     }
@@ -103,8 +178,8 @@ class Client
         if (!$response->isSuccess()) {
             return null;
         }
-
-        $data  = $response->getJsonResponse();
+        print $response->getResponse();
+        $data = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
@@ -132,7 +207,7 @@ class Client
             return null;
         }
 
-        $data  = $response->getJsonResponse();
+        $data = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
@@ -143,7 +218,7 @@ class Client
 
     /**
      * @param string $name
-     * @param int    $parentFolderId
+     * @param int $parentFolderId
      *
      * @return null|File
      */
@@ -208,7 +283,7 @@ class Client
     /**
      * @param string $name
      * @param string $filePath
-     * @param int    $parentFolderId
+     * @param int $parentFolderId
      *
      * @return File|null
      */
@@ -248,7 +323,7 @@ class Client
     public function overwriteFile($name, $filePath, $fileId)
     {
         $params = array(
-            'name'   => $name,
+            'name' => $name,
         );
         $response = $this->accessAPIUpload('2.0/files/'.$fileId.'/content', 'post', $params,
             $this->getAuthenticatedHeaders(), array($filePath), 'https://upload.box.com/api/');
@@ -268,6 +343,13 @@ class Client
         return $files[0];
     }
 
+    private function generateUID()
+    {
+        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff), mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000, mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+    }
+
     private function getAuthenticatedHeaders()
     {
         return array(
@@ -278,8 +360,8 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array  $param
-     * @param array  $headers
+     * @param array $param
+     * @param array $headers
      * @param string $contentType
      *
      * @return Response
@@ -289,7 +371,7 @@ class Client
         $url = $this->baseURL.$path;
 
         $httpClient = new HttpClient();
-        $request    = new Request($url, $method, $param, $contentType);
+        $request = new Request($url, $method, $param, $contentType);
         $request->setHeaders($headers);
         $response = $httpClient->request($request);
 
@@ -299,9 +381,9 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array  $param
-     * @param array  $headers
-     * @param array  $files
+     * @param array $param
+     * @param array $headers
+     * @param array $files
      * @param string $baseUrl
      *
      * @return Response
@@ -311,9 +393,9 @@ class Client
         if (empty($baseUrl)) {
             $baseUrl = $this->baseURL;
         }
-        $url        = $baseUrl.$path;
+        $url = $baseUrl.$path;
         $httpClient = new HttpClient();
-        $request    = new Request($url, $method, $param, 'multipart', $files);
+        $request = new Request($url, $method, $param, 'multipart', $files);
         $request->setHeaders($headers);
         $response = $httpClient->request($request);
 
@@ -323,8 +405,8 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array  $param
-     * @param array  $headers
+     * @param array $param
+     * @param array $headers
      * @param string $contentType
      *
      * @return Response
@@ -334,7 +416,7 @@ class Client
         $url = $this->baseURL.$path;
 
         $httpClient = new HttpClient();
-        $request    = new Request($url, $method, $param, $contentType);
+        $request = new Request($url, $method, $param, $contentType);
         $request->setHeaders($headers);
         $response = $httpClient->requestWithCurl($request);
 

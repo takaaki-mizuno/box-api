@@ -8,7 +8,8 @@ class FileSearchTest extends BaseClientTestCase
     {
         $client = $this->getClient();
 
-        $files = $client->searchFile('test');
+        $files = $client->searchFile('rename');
+
         $this->assertNotEmpty($files);
 
         foreach ($files as $file) {
