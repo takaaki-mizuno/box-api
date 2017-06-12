@@ -19,7 +19,8 @@ class BaseClientTestCase extends \PHPUnit\Framework\TestCase
     {
         $client = new Client($this->getKeyFile('client_id'), $this->getKeyFile('client_secret'),
             $this->getKeyFile('public_key_id'), $this->getKeyFile('user_id'), $this->getKeyFile('type'));
-        $result = $client->getAccessTokenWithJWT(realpath(__DIR__.'/data/private_key.pem'),
+        $key = file_get_contents(realpath(__DIR__.'/data/private_key.pem'));
+        $result = $client->getAccessTokenWithJWT($key,
             $this->getKeyFile('private_key_pass'));
         if (!$result) {
             return null;

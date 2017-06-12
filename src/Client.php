@@ -118,14 +118,13 @@ class Client
     }
 
     /**
-     * @param string $privateKeyPath
+     * @param string $privateKeyData
      * @param string $passphrase
      * @return bool
      */
-    public function getAccessTokenWithJWT($privateKeyPath, $passphrase)
+    public function getAccessTokenWithJWT($privateKeyData, $passphrase)
     {
-        $keyData = file_get_contents($privateKeyPath);
-        $privateKeyResource = openssl_pkey_get_private($keyData, $passphrase);
+        $privateKeyResource = openssl_pkey_get_private($privateKeyData, $passphrase);
         openssl_pkey_export($privateKeyResource, $privateKey);
 
         $jwtData = array(
