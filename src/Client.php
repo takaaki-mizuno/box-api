@@ -177,7 +177,7 @@ class Client
         if (!$response->isSuccess()) {
             return null;
         }
-        print $response->getResponse();
+
         $data = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {

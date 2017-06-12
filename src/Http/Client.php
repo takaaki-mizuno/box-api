@@ -75,8 +75,6 @@ class Client
             if ($statusCode == 401) {
                 throw new InvalidTokenException('Invalid Token', 401);
             } elseif ($statusCode > 399) {
-                print $url;
-                print_r($http_response_header);
                 throw new APIErrorException('API returns error', $statusCode);
             }
         } else {
@@ -115,8 +113,6 @@ class Client
         $body   = substr($data, $info['header_size']);
 
         curl_close($ch);
-
-        print_r(explode("\r\n", $header));
 
         return new Response($this->parseHeaders(explode("\r\n", $header)), $body);
     }
