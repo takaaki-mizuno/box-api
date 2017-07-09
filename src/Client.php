@@ -240,6 +240,12 @@ class Client
         return new File($data);
     }
 
+    /**
+     * @param string $name
+     * @param int    $folderId
+     *
+     * @return null|File
+     */
     public function renameFolder($name, $folderId)
     {
         $params = array(
@@ -257,7 +263,12 @@ class Client
         return new File($data);
     }
 
-    public function existFile($id)
+    /**
+     * @param int $id
+     *
+     * @return null|File
+     */
+    public function getFileInfo($id)
     {
         $response = $this->accessAPI('2.0/files/'.$id, 'get', array(), $this->getAuthenticatedHeaders(), 'json');
         if (!$response->isSuccess()) {
@@ -268,9 +279,32 @@ class Client
         return new File($data);
     }
 
+    /**
+     * @param string $name
+     * @param int    $fileId
+     *
+     * @return null|File
+     */
+    public function renameFile($name, $fileId)
+    {
+        $params = array(
+            'name' => $name,
+        );
+
+        $response = $this->accessAPI('2.0/files/'.$fileId, 'put', $params, $this->getAuthenticatedHeaders(),
+            'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
     public function getFileVersions($id)
     {
-        $file = $this->existFile($id);
+        $file = $this->getFileInfo($id);
         if (empty($file)) {
             return array();
         }
