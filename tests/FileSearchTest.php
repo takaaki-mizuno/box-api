@@ -1,5 +1,4 @@
 <?php
-
 namespace Tests;
 
 class FileSearchTest extends BaseClientTestCase
@@ -12,8 +11,8 @@ class FileSearchTest extends BaseClientTestCase
 
         $this->assertNotEmpty($files);
 
-        foreach ($files as $file) {
-            print $file->getFullPath().PHP_EOL;
-        }
+//        foreach ($files as $file) {
+//            print $file->getFullPath().PHP_EOL;
+//        }
     }
 }

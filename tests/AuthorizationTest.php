@@ -1,5 +1,4 @@
 <?php
-
 namespace Tests;
 
 class AuthorizationTest extends BaseClientTestCase

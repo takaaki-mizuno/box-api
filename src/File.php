@@ -24,6 +24,18 @@ class File
     /** @var array */
     private $pathCollection = array();
 
+    /** @var \DateTime|null */
+    private $modifiedAt = null;
+
+    /** @var \DateTime|null */
+    private $createdAt = null;
+
+    /** @var string */
+    private $modifierEmail = '';
+
+    /** @var int $fileVersionId */
+    private $fileVersionId = 0;
+
     /**
      * File constructor.
      *
@@ -97,6 +109,46 @@ class File
     }
 
     /**
+     * @return string
+     */
+    public function getModifierEmail()
+    {
+        return $this->modifierEmail;
+    }
+
+    /**
+     * @return int
+     */
+    public function getFileVersionId()
+    {
+        return $this->fileVersionId;
+    }
+
+    /**
+     * @return int
+     */
+    public function getSize()
+    {
+        return $this->size;
+    }
+
+    /**
+     * @return \DateTime|null
+     */
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
+    }
+
+    /**
+     * @return \DateTime|null
+     */
+    public function getModifiedAt()
+    {
+        return $this->modifiedAt;
+    }
+
+    /**
      * @param array $response
      */
     private function setAPIResponse($response)
@@ -106,8 +158,20 @@ class File
         $this->type = $response['type'];
         $this->size = array_key_exists('size', $response) ? $response['size'] : 0;
 
+        if (array_key_exists('modified_at', $response) && !empty($response['modified_at'])) {
+            $this->modifiedAt = new \DateTime($response['modified_at']);
+        }
+        if (array_key_exists('created_at', $response) && !empty($response['created_at'])) {
+            $this->createdAt = new \DateTime($response['created_at']);
+        }
         if (!empty($response['parent'])) {
             $this->parentId = $response['parent']['id'];
+        }
+        if (array_key_exists('modified_by', $response) && $response['modified_by']['type'] == 'user') {
+            $this->modifierEmail = $response['modified_by']['login'];
+        }
+        if (array_key_exists('file_version', $response) && $response['file_version']['type'] == 'file_version') {
+            $this->fileVersionId = $response['file_version']['id'];
         }
 
         if (array_key_exists('path_collection', $response)) {

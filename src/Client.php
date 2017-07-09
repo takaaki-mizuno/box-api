@@ -56,21 +56,21 @@ class Client
      * @param string $clientId
      * @param string $clientSecret
      * @param string $publicKeyId
-     * @param int $userId
+     * @param int    $userId
      * @param string $type
      * @param string $uid
      */
-    public function __construct($clientId, $clientSecret, $publicKeyId, $userId, $type = "user", $uid = null)
+    public function __construct($clientId, $clientSecret, $publicKeyId, $userId, $type = 'user', $uid = null)
     {
-        $this->clientId = $clientId;
+        $this->clientId     = $clientId;
         $this->clientSecret = $clientSecret;
         if (empty($uid)) {
             $uid = $this->generateUID();
         }
         $this->uid = $uid;
 
-        $this->userId = $userId;
-        $this->type = $type;
+        $this->userId      = $userId;
+        $this->type        = $type;
         $this->publicKeyId = $publicKeyId;
     }
 
@@ -110,8 +110,8 @@ class Client
             return false;
         }
 
-        $data = $response->getJsonResponse();
-        $this->accessToken = $data['access_token'];
+        $data               = $response->getJsonResponse();
+        $this->accessToken  = $data['access_token'];
         $this->refreshToken = $data['refresh_token'];
 
         return true;
@@ -120,6 +120,7 @@ class Client
     /**
      * @param string $privateKeyData
      * @param string $passphrase
+     *
      * @return bool
      */
     public function getAccessTokenWithJWT($privateKeyData, $passphrase)
@@ -140,10 +141,10 @@ class Client
         $jwt = JWT::encode($jwtData, $privateKey, 'RS256');
 
         $params = array(
-            'grant_type'  => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-            'client_id' => $this->clientId,
-            'client_secret'  => $this->clientSecret,
-            'assertion' => $jwt,
+            'grant_type'    => 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+            'client_id'     => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'assertion'     => $jwt,
         );
 
         $response = $this->accessAPI('oauth2/token', 'post', $params, array());
@@ -152,7 +153,7 @@ class Client
             return false;
         }
 
-        $data = $response->getJsonResponse();
+        $data              = $response->getJsonResponse();
         $this->accessToken = $data['access_token'];
 
         return true;
@@ -178,7 +179,7 @@ class Client
             return null;
         }
 
-        $data = $response->getJsonResponse();
+        $data  = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
@@ -206,7 +207,7 @@ class Client
             return null;
         }
 
-        $data = $response->getJsonResponse();
+        $data  = $response->getJsonResponse();
         $files = array();
         foreach ($data['entries'] as $entry) {
             $files[] = new File($entry);
@@ -217,7 +218,7 @@ class Client
 
     /**
      * @param string $name
-     * @param int $parentFolderId
+     * @param int    $parentFolderId
      *
      * @return null|File
      */
@@ -267,6 +268,66 @@ class Client
         return new File($data);
     }
 
+    public function getFileVersions($id)
+    {
+        $file = $this->existFile($id);
+        if (empty($file)) {
+            return array();
+        }
+
+        $fileVersions = array(new FileVersion(array(
+            'type'        => 'file_version',
+            'id'          => $file->getFileVersionId(),
+            'name'        => $file->getName(),
+            'size'        => $file->getSize(),
+            'created_at'  => $file->getCreatedAt() ? $file->getCreatedAt()->format(\DateTime::ISO8601) : null,
+            'modified_at' => $file->getModifiedAt() ? $file->getModifiedAt()->format(\DateTime::ISO8601) : null,
+            'modified_by' => array(
+                'type'  => 'user',
+                'login' => $file->getModifierEmail(),
+            ),
+
+        ), $id, true));
+
+        $response = $this->accessAPI('2.0/files/'.$id.'/versions', 'get', array(), $this->getAuthenticatedHeaders(),
+            'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $data = $response->getJsonResponse();
+
+        foreach ($data['entries'] as $entry) {
+            $fileVersions[] = new FileVersion($entry, $id);
+        }
+
+        return $fileVersions;
+    }
+
+    /**
+     * @param int $fileId
+     * @param int $fileVersionId
+     *
+     * @return FileVersion
+     */
+    public function promoteFileVersion($fileId, $fileVersionId)
+    {
+        $params = array(
+            'type' => 'file_version',
+            'id'   => $fileVersionId,
+        );
+
+        $response = $this->accessAPI('2.0/files/'.$fileId.'/versions/current', 'post', $params,
+            $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $data = $response->getJsonResponse();
+
+        $fileVersion = new FileVersion($data, $fileId);
+
+        return $fileVersion;
+    }
+
     public function downloadFile($id, $filePath)
     {
         $response = $this->accessAPIDownload('2.0/files/'.$id.'/content', 'get', array(),
@@ -282,7 +343,7 @@ class Client
     /**
      * @param string $name
      * @param string $filePath
-     * @param int $parentFolderId
+     * @param int    $parentFolderId
      *
      * @return File|null
      */
@@ -342,6 +403,22 @@ class Client
         return $files[0];
     }
 
+    public function createUser($name)
+    {
+        $params = array(
+            'name'                    => $name,
+            'is_platform_access_only' => true,
+        );
+        $response = $this->accessAPI('2.0/users', 'post', $params, $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $json = $response->getJsonResponse();
+        print_r($json);
+
+        return $json;
+    }
+
     private function generateUID()
     {
         return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff),
@@ -359,8 +436,8 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array $param
-     * @param array $headers
+     * @param array  $param
+     * @param array  $headers
      * @param string $contentType
      *
      * @return Response
@@ -370,7 +447,7 @@ class Client
         $url = $this->baseURL.$path;
 
         $httpClient = new HttpClient();
-        $request = new Request($url, $method, $param, $contentType);
+        $request    = new Request($url, $method, $param, $contentType);
         $request->setHeaders($headers);
         $response = $httpClient->request($request);
 
@@ -380,9 +457,9 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array $param
-     * @param array $headers
-     * @param array $files
+     * @param array  $param
+     * @param array  $headers
+     * @param array  $files
      * @param string $baseUrl
      *
      * @return Response
@@ -392,9 +469,9 @@ class Client
         if (empty($baseUrl)) {
             $baseUrl = $this->baseURL;
         }
-        $url = $baseUrl.$path;
+        $url        = $baseUrl.$path;
         $httpClient = new HttpClient();
-        $request = new Request($url, $method, $param, 'multipart', $files);
+        $request    = new Request($url, $method, $param, 'multipart', $files);
         $request->setHeaders($headers);
         $response = $httpClient->request($request);
 
@@ -404,8 +481,8 @@ class Client
     /**
      * @param string $path
      * @param string $method
-     * @param array $param
-     * @param array $headers
+     * @param array  $param
+     * @param array  $headers
      * @param string $contentType
      *
      * @return Response
@@ -415,7 +492,7 @@ class Client
         $url = $this->baseURL.$path;
 
         $httpClient = new HttpClient();
-        $request = new Request($url, $method, $param, $contentType);
+        $request    = new Request($url, $method, $param, $contentType);
         $request->setHeaders($headers);
         $response = $httpClient->requestWithCurl($request);
 
