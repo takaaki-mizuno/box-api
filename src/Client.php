@@ -333,6 +333,81 @@ class Client
         return new File($data);
     }
 
+    /**
+     * Copy Whole Folder Contents To Another Parent Folder.
+     *
+     * @param int         $srcFolderId
+     * @param int         $dstParentFolderId
+     * @param string null $name
+     *
+     * @return null|File
+     */
+    public function copyFolder($srcFolderId, $dstParentFolderId, $name=null)
+    {
+        $params = array(
+            'parent' => array(
+                'id' => $dstParentFolderId,
+            ),
+        );
+        if (!empty($name)) {
+            $params['parent']['name'] = $name;
+        }
+        $response = $this->accessAPI(
+            '2.0/folders/'.$srcFolderId.'/copy',
+            'post',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
+    /**
+     * Copy File To Another Parent Folder.
+     *
+     * @param int         $srcFileId
+     * @param int         $dstParentFolderId
+     * @param string null $name
+     *
+     * @return null|File
+     */
+    public function copyFile($srcFileId, $dstParentFolderId, $name=null)
+    {
+        $params = array(
+            'parent' => array(
+                'id' => $dstParentFolderId,
+            ),
+        );
+        if (!empty($name)) {
+            $params['parent']['name'] = $name;
+        }
+        $response = $this->accessAPI(
+            '2.0/files/'.$srcFileId.'/copy',
+            'post',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
+    /**
+     * @param int $id
+     *
+     * @return FileVersion[]|null
+     */
     public function getFileVersions($id)
     {
         $file = $this->getFileInfo($id);
