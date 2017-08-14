@@ -201,8 +201,13 @@ class Client
             'offset' => $offset,
             'limit'  => $limit,
         );
-        $response = $this->accessAPI('2.0/folders/'.$folderId.'/items', 'get', $params,
-            $this->getAuthenticatedHeaders(), 'json');
+        $response = $this->accessAPI(
+            '2.0/folders/'.$folderId.'/items',
+            'get',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -252,8 +257,13 @@ class Client
             'name' => $name,
         );
 
-        $response = $this->accessAPI('2.0/folders/'.$folderId, 'put', $params, $this->getAuthenticatedHeaders(),
-            'json');
+        $response = $this->accessAPI(
+            '2.0/folders/'.$folderId,
+            'put',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -280,6 +290,22 @@ class Client
     }
 
     /**
+     * @param int $id
+     *
+     * @return null|File
+     */
+    public function getFolderInfo($id)
+    {
+        $response = $this->accessAPI('2.0/folders/'.$id, 'get', array(), $this->getAuthenticatedHeaders(), 'json');
+        if (!$response->isSuccess()) {
+            return null;
+        }
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
+    /**
      * @param string $name
      * @param int    $fileId
      *
@@ -291,8 +317,13 @@ class Client
             'name' => $name,
         );
 
-        $response = $this->accessAPI('2.0/files/'.$fileId, 'put', $params, $this->getAuthenticatedHeaders(),
-            'json');
+        $response = $this->accessAPI(
+            '2.0/files/'.$fileId,
+            'put',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -323,8 +354,13 @@ class Client
 
         ), $id, true));
 
-        $response = $this->accessAPI('2.0/files/'.$id.'/versions', 'get', array(), $this->getAuthenticatedHeaders(),
-            'json');
+        $response = $this->accessAPI(
+            '2.0/files/'.$id.'/versions',
+            'get',
+            array(),
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -350,8 +386,13 @@ class Client
             'id'   => $fileVersionId,
         );
 
-        $response = $this->accessAPI('2.0/files/'.$fileId.'/versions/current', 'post', $params,
-            $this->getAuthenticatedHeaders(), 'json');
+        $response = $this->accessAPI(
+            '2.0/files/'.$fileId.'/versions/current',
+            'post',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -364,8 +405,13 @@ class Client
 
     public function downloadFile($id, $filePath)
     {
-        $response = $this->accessAPIDownload('2.0/files/'.$id.'/content', 'get', array(),
-            $this->getAuthenticatedHeaders(), 'json');
+        $response = $this->accessAPIDownload(
+            '2.0/files/'.$id.'/content',
+            'get',
+            array(),
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -389,8 +435,14 @@ class Client
                 'id' => $parentFolderId,
             ),
         );
-        $response = $this->accessAPIUpload('2.0/files/content', 'post', $params, $this->getAuthenticatedHeaders(),
-            array($filePath), 'https://upload.box.com/api/');
+        $response = $this->accessAPIUpload(
+            '2.0/files/content',
+            'post',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            array($filePath),
+            'https://upload.box.com/api/'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -419,8 +471,14 @@ class Client
         $params = array(
             'name' => $name,
         );
-        $response = $this->accessAPIUpload('2.0/files/'.$fileId.'/content', 'post', $params,
-            $this->getAuthenticatedHeaders(), array($filePath), 'https://upload.box.com/api/');
+        $response = $this->accessAPIUpload(
+            '2.0/files/'.$fileId.'/content',
+            'post',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            array($filePath),
+            'https://upload.box.com/api/'
+        );
         if (!$response->isSuccess()) {
             return null;
         }
@@ -455,9 +513,17 @@ class Client
 
     private function generateUID()
     {
-        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x', mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff), mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000, mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+        return sprintf(
+            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0x0fff) | 0x4000,
+            mt_rand(0, 0x3fff) | 0x8000,
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff),
+            mt_rand(0, 0xffff)
+        );
     }
 
     private function getAuthenticatedHeaders()
