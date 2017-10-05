@@ -4,6 +4,7 @@ namespace TakaakiMizuno\Box\Http;
 use TakaakiMizuno\Box\Exceptions\APIErrorException;
 use TakaakiMizuno\Box\Exceptions\InvalidTokenException;
 use TakaakiMizuno\Box\Exceptions\NetworkException;
+use TakaakiMizuno\Box\Exceptions\NotFoundException;
 
 class Client
 {
@@ -74,6 +75,8 @@ class Client
             $statusCode = (int) $matches[1];
             if ($statusCode == 401) {
                 throw new InvalidTokenException('Invalid Token', 401);
+            } elseif ($statusCode == 404) {
+                throw new NotFoundException('Not Found', 404);
             } elseif ($statusCode > 399) {
                 throw new APIErrorException('API returns error', $statusCode);
             }
