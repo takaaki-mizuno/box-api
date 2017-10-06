@@ -159,10 +159,12 @@ class File
         $this->size = array_key_exists('size', $response) ? $response['size'] : 0;
 
         if (array_key_exists('modified_at', $response) && !empty($response['modified_at'])) {
-            $this->modifiedAt = new \DateTime($response['modified_at']);
+            $this->modifiedAt = \DateTime::createFromFormat('Y-m-d\TH:i:sP', $response['modified_at']);
+            $this->modifiedAt->setTimezone(new \DateTimeZone('UTC'));
         }
         if (array_key_exists('created_at', $response) && !empty($response['created_at'])) {
-            $this->createdAt = new \DateTime($response['created_at']);
+            $this->createdAt = \DateTime::createFromFormat('Y-m-d\TH:i:sP', $response['created_at']);
+            $this->createdAt->setTimezone(new \DateTimeZone('UTC'));
         }
         if (!empty($response['parent'])) {
             $this->parentId = $response['parent']['id'];
