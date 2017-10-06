@@ -334,6 +334,41 @@ class Client
     }
 
     /**
+     * Move Whole Folder Contents To Another Parent Folder.
+     *
+     * @param int         $srcFolderId
+     * @param int         $dstParentFolderId
+     * @param string null $name
+     *
+     * @return null|File
+     */
+    public function moveFolder($srcFolderId, $dstParentFolderId, $name=null)
+    {
+        $params = array(
+            'parent' => array(
+                'id' => $dstParentFolderId,
+            ),
+        );
+        if (!empty($name)) {
+            $params['name'] = $name;
+        }
+        $response = $this->accessAPI(
+            '2.0/folders/'.$srcFolderId,
+            'put',
+            $params,
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
+        if (!$response->isSuccess()) {
+            return null;
+        }
+
+        $data = $response->getJsonResponse();
+
+        return new File($data);
+    }
+
+    /**
      * Copy Whole Folder Contents To Another Parent Folder.
      *
      * @param int         $srcFolderId
@@ -350,7 +385,7 @@ class Client
             ),
         );
         if (!empty($name)) {
-            $params['parent']['name'] = $name;
+            $params['name'] = $name;
         }
         $response = $this->accessAPI(
             '2.0/folders/'.$srcFolderId.'/copy',
