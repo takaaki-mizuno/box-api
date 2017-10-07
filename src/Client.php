@@ -342,7 +342,7 @@ class Client
      *
      * @return null|File
      */
-    public function moveFolder($srcFolderId, $dstParentFolderId, $name=null)
+    public function moveFolder($srcFolderId, $dstParentFolderId, $name=null, $ownerId=0)
     {
         $params = array(
             'parent' => array(
@@ -351,6 +351,11 @@ class Client
         );
         if (!empty($name)) {
             $params['name'] = $name;
+        }
+        if ($ownerId > 0) {
+            $params['owned_by'] = array(
+                'id' => $ownerId,
+            );
         }
         $response = $this->accessAPI(
             '2.0/folders/'.$srcFolderId,
