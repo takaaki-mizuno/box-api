@@ -338,11 +338,12 @@ class Client
      *
      * @param int         $srcFolderId
      * @param int         $dstParentFolderId
-     * @param string null $name
+     * @param string|null $name
+     * @param string|null $ownerId
      *
      * @return null|File
      */
-    public function moveFolder($srcFolderId, $dstParentFolderId, $name=null, $ownerId=0)
+    public function moveFolder($srcFolderId, $dstParentFolderId, $name=null, $ownerId=null)
     {
         $params = array(
             'parent' => array(
@@ -352,7 +353,7 @@ class Client
         if (!empty($name)) {
             $params['name'] = $name;
         }
-        if ($ownerId > 0) {
+        if (!empty($ownerId)) {
             $params['owned_by'] = array(
                 'id' => $ownerId,
             );
