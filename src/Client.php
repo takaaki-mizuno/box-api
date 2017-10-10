@@ -374,6 +374,17 @@ class Client
         return new File($data);
     }
 
+    public function deleteFolder($folderId)
+    {
+        $response = $this->accessAPI(
+            '2.0/folders/'.$folderId,
+            'delete',
+            array(),
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
+    }
+
     /**
      * Copy Whole Folder Contents To Another Parent Folder.
      *
@@ -609,6 +620,17 @@ class Client
         }
 
         return $files[0];
+    }
+
+    public function deleteFile($fileId)
+    {
+        $response = $this->accessAPI(
+            '2.0/files/'.$fileId,
+            'delete',
+            array(),
+            $this->getAuthenticatedHeaders(),
+            'json'
+        );
     }
 
     public function createUser($name)
